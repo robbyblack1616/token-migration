@@ -58,7 +58,7 @@
   </div>
 
   <script>
-    const oldTokenAddress = "0x0cf8e180350253271f4b917ccfb0accc4862f262"; // 17 decimals
+    const oldTokenAddress = "0x0cf8e180350253271f4b917ccfb0accc4862f262";
     const migratorAddress = "0x36990197bf1a33ba7d682b21e1059d6bb7335b3d";
 
     const oldTokenABI = [
@@ -76,21 +76,25 @@
 
     async function connectWallet() {
       if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-        account = accounts[0];
-        document.getElementById("wallet").innerText = "Connected: " + account;
+        try {
+          web3 = new Web3(window.ethereum);
+          const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+          account = accounts[0];
+          document.getElementById("wallet").innerText = "Connected: " + account;
 
-        const token = new web3.eth.Contract(oldTokenABI, oldTokenAddress);
-        oldDecimals = await token.methods.decimals().call();
+          const token = new web3.eth.Contract(oldTokenABI, oldTokenAddress);
+          oldDecimals = await token.methods.decimals().call();
+        } catch (err) {
+          alert("Wallet connection failed: " + err.message);
+        }
       } else {
-        alert("MetaMask not found");
+        alert("MetaMask not detected. Please install MetaMask to use this app.");
       }
     }
 
     function toUnits(amount, decimals) {
-      return web3.utils.toBN(web3.utils.toWei(amount.toString(), "ether"))
-                      .div(web3.utils.toBN(10).pow(web3.utils.toBN(18 - decimals)));
+      const factor = web3.utils.toBN(10).pow(web3.utils.toBN(decimals));
+      return web3.utils.toBN(amount).mul(factor);
     }
 
     async function approve() {
@@ -104,7 +108,7 @@
         await token.methods.approve(migratorAddress, amountInUnits.toString()).send({ from: account });
         document.getElementById("status").innerText = "✅ Approval successful!";
       } catch (err) {
-        document.getElementById("status").innerText = "❌ Approval failed: " + err.message;
+        document.getElementById("status").innerText = "⚠️ Approval failed: " + err.message;
       }
     }
 
@@ -119,7 +123,7 @@
         await migrator.methods.migrate(amountInUnits.toString()).send({ from: account });
         document.getElementById("status").innerText = "✅ Migration successful!";
       } catch (err) {
-        document.getElementById("status").innerText = "❌ Migration failed: " + err.message;
+        document.getElementById("status").innerText = "⚠️ Migration failed: " + err.message;
       }
     }
   </script>
